@@ -44,7 +44,7 @@ def format_number(num):
         return str(num)
 
 class Tapper:
-    def __init__(self, tg_client: Client):
+    def __init__(self, tg_client: Client, update_left_panel=None):
         self.session_name = tg_client.name
         self.tg_client = tg_client
         self.user_id = 0
@@ -58,6 +58,7 @@ class Tapper:
         self.user_data = {}
         self.tg_web_data = None
         self.client_lock = asyncio.Lock()
+        self.update_left_panel = update_left_panel
         self.upgrades = {}
         self.current_coins = 0
         self.current_energy = 0
@@ -698,8 +699,9 @@ class Tapper:
                 self.raffle_tickets = data.get("ticketsCount", self.raffle_tickets)
                 self.raffle_total_tickets = data.get("ticketsTotal", self.raffle_total_tickets)
                 add_log(f"{self.session_name} | Bought {tickets_to_buy} raffle tickets. Total tickets: {self.raffle_tickets}. Next purchase in {settings.RAFFLE_BUY_INTERVAL} seconds.")
-                
-                await update_left_panel()
+
+                if self.update_left_panel:
+                    await self.update_left_panel()
             else:
                 add_log(f"{self.session_name} | Failed to buy raffle tickets. Status: {response.status}")
         except Exception as e:
@@ -866,6 +868,9 @@ async def run_tappers(tg_clients: list[Client], proxies: list[str | None]):
             table.add_row(*row_data)
 
         return Panel(table, title="Sessions Overview", border_style="green")
+
+    for tapper in tappers:
+        tapper.update_left_panel = update_left_panel
 
     async def update_layout():
         while True:
